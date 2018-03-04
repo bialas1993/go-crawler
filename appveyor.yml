@@ -1,0 +1,46 @@
+branches:
+  only:
+    - master
+
+clone_folder: c:\gopath\src\github.com\bialas1993\elasticsearch-tutorial
+
+environment:
+  GOPATH: c:\gopath
+  APPVEYOR_REPO_TAG: true
+
+  matrix:
+      - TOOLCHAIN: "vs-12-2013"
+        CONFIG: Release
+
+install:
+  - echo %PATH%
+  - echo %GOPATH%
+  - set PATH=%GOPATH%\bin;c:\go\bin;%PATH%
+  - go version
+  - go env
+  - go get -u github.com/golang/dep/cmd/dep
+  - dep ensure
+
+build_script:
+  - git config --local user.name "bialas1993"
+  - git config --local user.email "white@white.com"
+  - go build -o go-crawler-windows -i .
+  - ps: $env:TAG_NAME=git rev-list --all --count
+  - echo %TAG_NAME%
+  - ps: echo $TAG_NAME
+artifacts:
+  - path: go-crawler-windows
+    name: Releases
+
+test: off
+
+deploy:
+  release: release-$(TAG_NAME)
+  provider: GitHub
+  auth_token:
+    secure: r5MzDMTOAg/IRYOX4P2mrchcdaXHPRyS6Y6RKAYDw6++yMj2NTRDejCDKK8oOUlb
+  artifact: go-crawler-windows
+  draft: false
+  prerelease: false
+  on:
+    appveyor_repo_tag: true
