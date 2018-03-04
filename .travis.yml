@@ -14,8 +14,7 @@ install:
 
 script:
   - go build -o go-crawler-linux -i .
-  - test -n "$TRAVIS_TAG" || go run main.go --snapshot
-
+  
 before_deploy:
    - git config --local user.name "bialas1993"
    - git config --local user.email "white@white.com"
