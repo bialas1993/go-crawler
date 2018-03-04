@@ -10,11 +10,10 @@ install:
   - sudo apt-get update
   - sudo apt-get install --yes snapd rpm liblz4-dev
   - export PATH=/snap/bin:$PATH
-  - sudo snap install snapcraft --classic
 
 script:
   - go build -o go-crawler-linux -i .
-  
+
 before_deploy:
    - git config --local user.name "bialas1993"
    - git config --local user.email "white@white.com"
@@ -33,7 +32,3 @@ deploy:
 notifications:
   email: false
 
-addons:
-  apt:
-    packages:
-      - docker-ce
