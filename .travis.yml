@@ -27,7 +27,7 @@ deploy:
     skip_cleanup: true
   - provider: script
     skip_cleanup: true
-    script: go run main.go --rm-dist
+    script: make ci
     on:
       tags: true
 
