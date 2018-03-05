@@ -7,13 +7,14 @@ import (
 )
 
 func usage() {
-	fmt.Printf("usage: go-crawler http:/your-domain.com/\n")
+	fmt.Printf("usage: go-crawler http:/your-domain.com/ --depth=5 \n")
 	flag.PrintDefaults()
 	os.Exit(2)
 }
 
-func validateParams() []string {
+func parseParams() (string, int) {
 	flag.Usage = usage
+	depth := flag.Int("depth", 0, "Depth to finding pages")
 	flag.Parse()
 
 	args := flag.Args()
@@ -24,5 +25,7 @@ func validateParams() []string {
 		os.Exit(1)
 	}
 
-	return args
+	*depth += 1
+
+	return string(args[0]), *depth
 }
