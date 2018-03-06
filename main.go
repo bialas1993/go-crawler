@@ -1,51 +1,76 @@
 package main
 
 import (
-	"fmt"
-	"log"
+	"time"
+	"sync"
 )
 
-var tokens = make(chan struct{}, 1)
+const CONNECTIONS_LIMIT = 25
+
+var tokens = make(chan struct{}, CONNECTIONS_LIMIT)
+var httpErrors = make(chan *HttpError)
+var mux sync.Mutex
 
 func crawl(url string) []string {
-	fmt.Println(url)
 	tokens <- struct{}{}
+
 	list, err := Extract(url)
+
 	<-tokens
 
 	if err != nil {
-		log.Print(err)
+		err, ok := err.(*HttpError); if ok {
+			go func (err *HttpError) {
+				httpErrors <- err
+			}(err)
+		}
 	}
+
 	return list
 }
 
 func main() {
-	page, depth := parseParams()
+	page, _, logTimer := parseParams()
 	worklist := make(chan []string)
 	var n int
-	lvl := 0
+	var pagesSeen, pageSeenLast uint16
+	var timer *time.Ticker
+
+	if logTimer > 0 {
+		timer = time.NewTicker( time.Duration(logTimer) * time.Second )
+	} else {
+		timer = time.NewTicker( time.Second )
+		timer.Stop()
+	}
 
 	n++
 	go func() { worklist <- []string{page} }()
 
 	seen := make(map[string]bool)
 	for ; n > 0; n-- {
-		list := <-worklist
-
-		for _, link := range list {
-			if lvl >= depth {
-				return
+		select {
+		case list := <-worklist:
+			for _, link := range list {
+				if !seen[link] {
+					seen[link] = true
+					n++
+					go func(link string) {
+						worklist <- crawl(link)
+					}(link)
+				}
+				pagesSeen++
 			}
 
-			if !seen[link] {
-				seen[link] = true
-				n++
-				go func(link string) {
-					worklist <- crawl(link)
-				}(link)
-			}
+		case err := <-httpErrors:
+			n++
+			println("Fuck! Error from:", err.code, err.url)
+
+		case <-timer.C:
+			mux.Lock()
+			n++
+			println("Pages seen by second: ", pagesSeen - pageSeenLast, ", all: ", pagesSeen)
+			pageSeenLast = pagesSeen
+			mux.Unlock()
 		}
-
-		lvl++
 	}
 }

@@ -7,21 +7,32 @@ import (
 	"golang.org/x/net/html"
 )
 
+type HttpError struct {
+	url string
+	code int
+}
+
+func (e *HttpError) Error() string {
+	return fmt.Sprintf("Http error: [code=%d] %s", e.code, e.url)
+}
+
 func Extract(url string) ([]string, error) {
 	resp, err := http.Get(url)
+
 	if err != nil {
 		return nil, err
 	}
+
 	if resp.StatusCode != http.StatusOK {
 		resp.Body.Close()
-		return nil, fmt.Errorf("fetching %s: %s", url, resp.Status)
+		return nil, &HttpError{url, resp.StatusCode}
 	}
 
 	doc, err := html.Parse(resp.Body)
-	resp.Body.Close()
 	if err != nil {
 		return nil, fmt.Errorf("parsing %s to HTML: %v", url, err)
 	}
+
 
 	var links []string
 	visitNode := func(n *html.Node) {
