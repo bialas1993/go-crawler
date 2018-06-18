@@ -16,3 +16,4 @@
 .idea
 /go-crawler-*
 /vendor
+/go-crawler

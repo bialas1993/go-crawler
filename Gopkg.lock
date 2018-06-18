@@ -2,20 +2,38 @@
 
 
 [[projects]]
-  branch = "master"
-  name = "github.com/jackdanger/collectlinks"
+  name = "github.com/sirupsen/logrus"
   packages = ["."]
-  revision = "24c4ee2870ba625f927b59de8c421c3f0be82b90"
+  revision = "c155da19408a8799da419ed3eeb0cb5db0ad5dbc"
+  version = "v1.0.5"
+
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/crypto"
+  packages = ["ssh/terminal"]
+  revision = "a8fb68e7206f8c78be19b432c58eb52a6aa34462"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/net"
-  packages = ["html","html/atom"]
+  packages = [
+    "html",
+    "html/atom"
+  ]
   revision = "22ae77b79946ea320088417e4d50825671d82d57"
+
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/sys"
+  packages = [
+    "unix",
+    "windows"
+  ]
+  revision = "8014b7b116a67fea23fbb82cd834c9ad656ea44b"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "21112d6892c91b6534581beab2ed0f544e832f5ed21b92a55476597ade925e82"
+  inputs-digest = "bd673f71943c63b85e4363f9b87166586debeccd85059d9691dc16444dab1503"
   solver-name = "gps-cdcl"
   solver-version = 1

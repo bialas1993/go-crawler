@@ -3,8 +3,10 @@ package main
 import (
 	"fmt"
 	"net/http"
-
 	"golang.org/x/net/html"
+	"crypto/tls"
+	"regexp"
+	"strings"
 )
 
 type HttpError struct {
@@ -17,6 +19,7 @@ func (e *HttpError) Error() string {
 }
 
 func Extract(url string) ([]string, error) {
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	resp, err := http.Get(url)
 
 	if err != nil {
@@ -33,7 +36,6 @@ func Extract(url string) ([]string, error) {
 		return nil, fmt.Errorf("parsing %s to HTML: %v", url, err)
 	}
 
-
 	var links []string
 	visitNode := func(n *html.Node) {
 		if n.Type == html.ElementNode && n.Data == "a" {
@@ -49,7 +51,9 @@ func Extract(url string) ([]string, error) {
 			}
 		}
 	}
+
 	forEachNode(doc, visitNode, nil)
+
 	return links, nil
 }
 
@@ -63,4 +67,21 @@ func forEachNode(n *html.Node, pre, post func(n *html.Node)) {
 	if post != nil {
 		post(n)
 	}
+}
+
+func filterDomain(list []string) []string {
+	var re = regexp.MustCompile(`(?m)^(http(|s):|)(\/\/)` + page.Hostname() + `.*`)
+	var splitedUrl []string
+	var urls []string
+
+	for _, url := range list {
+		splitedUrl = strings.Split(url, "#")
+		url = splitedUrl[0]
+
+		if len(re.FindAllString(url, -1)) > 0 {
+			urls = append(urls, url)
+		}
+	}
+
+	return urls
 }
