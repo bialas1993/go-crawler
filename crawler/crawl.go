@@ -2,8 +2,7 @@ package crawler
 
 import (
 	"net/url"
-		"strconv"
-)
+		)
 
 const (
 	CONNECTIONS_LIMIT = 20
@@ -12,10 +11,15 @@ const (
 
 var n uint32
 
+type crawlUrl struct{
+	Parent string
+	Url string
+}
+
 type crawler struct{
 	tokens     chan struct{}
 	httpErrors chan *HttpError
-	workList   chan []string
+	workList   chan []crawlUrl
 	page       *url.URL
 	logChannel chan string
 }
@@ -26,13 +30,16 @@ func Run(pageUrl string, logChannel *chan string) *crawler {
 	c := crawler{
 		tokens:     make(chan struct{}, CONNECTIONS_LIMIT),
 		httpErrors: make(chan *HttpError),
-		workList:   make(chan []string),
+		workList:   make(chan []crawlUrl),
 		page:       page,
 		logChannel: *logChannel,
 	}
 
 	go func() {
-		c.workList <- []string{pageUrl}
+		c.workList <- []crawlUrl{crawlUrl{
+			Parent: "",
+			Url: pageUrl,
+		}}
 	}()
 
 	n++
@@ -48,11 +55,11 @@ func (c *crawler) bind() {
 		case list := <-c.workList:
 			if len(list) > 0 {
 				for _, link := range filterDomain(c.page, list) {
-					if !seen[link] {
-						seen[link] = true
+					if !seen[link.Url] {
+						seen[link.Url] = true
 						n++
 
-						go func(link string) {
+						go func(link crawlUrl) {
 							c.workList <- c.crawl(link)
 							//c.logChannel <- "Seen: " +  link
 						}(link)
@@ -64,7 +71,7 @@ func (c *crawler) bind() {
 		case err := <-c.httpErrors:
 			n++
 			go func(err *HttpError) {
-				c.logChannel <- "Fuck! Error from: " + strconv.Itoa(err.code) + " " + err.url
+				c.logChannel <- "Fuck! " + err.Error()
 			} (err)
 		}
 	}
@@ -77,7 +84,7 @@ func (c *crawler) bind() {
 	}(c)
 }
 
-func (c *crawler) crawl(url string) []string {
+func (c *crawler) crawl(url crawlUrl) []crawlUrl {
 	c.tokens <- struct{}{}
 	list, err := extract(url)
 	<-c.tokens
