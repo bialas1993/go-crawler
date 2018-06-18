@@ -2,31 +2,33 @@ package crawler
 
 import (
 	"net/url"
-	log "github.com/sirupsen/logrus"
+		"strconv"
 )
 
 const (
 	CONNECTIONS_LIMIT = 20
+	CLOSE_LOGGER_MESSAGE = "crawler_logger_exit;"
 )
-
 
 var n uint32
 
 type crawler struct{
 	tokens     chan struct{}
 	httpErrors chan *HttpError
-	page       *url.URL
 	workList   chan []string
+	page       *url.URL
+	logChannel chan string
 }
 
-func Run(pageUrl string) *crawler {
+func Run(pageUrl string, logChannel *chan string) *crawler {
 	var page, _ = url.Parse(pageUrl)
 
 	c := crawler{
 		tokens:     make(chan struct{}, CONNECTIONS_LIMIT),
 		httpErrors: make(chan *HttpError),
-		page:       page,
 		workList:   make(chan []string),
+		page:       page,
+		logChannel: *logChannel,
 	}
 
 	go func() {
@@ -50,22 +52,20 @@ func (c *crawler) bind() {
 						seen[link] = true
 						n++
 
-						log.Debugf("Seen: %s", link)
 						go func(link string) {
 							c.workList <- c.crawl(link)
+							//c.logChannel <- "Seen: " +  link
 						}(link)
-
-						log.Printf("Seen: %s", link)
 					}
 				}
 			} else {
 				break
 			}
-
-
 		case err := <-c.httpErrors:
 			n++
-			log.Println("Fuck! Error from:", err.code, err.url)
+			go func(err *HttpError) {
+				c.logChannel <- "Fuck! Error from: " + strconv.Itoa(err.code) + " " + err.url
+			} (err)
 		}
 	}
 
@@ -73,6 +73,7 @@ func (c *crawler) bind() {
 		close(c.workList)
 		close(c.tokens)
 		close(c.httpErrors)
+		c.logChannel <- CLOSE_LOGGER_MESSAGE
 	}(c)
 }
 

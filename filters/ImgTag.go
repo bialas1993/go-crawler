@@ -4,11 +4,11 @@ type ImgTag struct {
 	SeoFilter
 }
 
-func (*ImgTag) Tag() []string {
+func (i ImgTag) Tag() []string {
 	return []string{"img"}
 }
 
-func (*ImgTag) Filter() {
+func (i ImgTag) Filter() {
 	panic("implement me")
 }
 
