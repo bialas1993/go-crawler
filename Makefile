@@ -8,12 +8,8 @@ setup:
 	go get -u github.com/alecthomas/gometalinter
 	go get -u github.com/golang/dep/cmd/dep
 	go get -u golang.org/x/tools/cmd/cover
-	go get -u github.com/caarlos0/static/cmd/static-docs
-	go get -u github.com/caarlos0/bandep
 	dep ensure
 	gometalinter --install
-	echo "make check" > .git/hooks/pre-commit
-	chmod +x .git/hooks/pre-commit
 .PHONY: setup
 
 check:

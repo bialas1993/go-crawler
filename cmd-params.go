@@ -6,6 +6,13 @@ import (
 	"flag"
 )
 
+const (
+	LOG_LEVEL_INFO = iota
+	LOG_LEVEL_WARNING
+	LOG_LEVEL_ERROR
+	LOG_LEVEL_DEBUG
+)
+
 func usage() {
 	fmt.Printf("usage: go-crawler --pageUrl=http://your-domain.com/ --depth=5 --timer=1\n")
 	flag.PrintDefaults()
@@ -32,20 +39,4 @@ func parseParams() (string, int, int, int) {
 	depth += 1
 
 	return page, depth, logTimer, LOG_LEVEL_DEBUG
-}
-
-
-func selectDebugLevel() int {
-	for i := 0; i < len(os.Args);  {
-		switch os.Args[i] {
-		case "-v":
-			return LOG_LEVEL_WARNING
-		case "-vv":
-			return LOG_LEVEL_ERROR
-		case "-vvv":
-			return LOG_LEVEL_DEBUG
-		}
-	}
-
-	return LOG_LEVEL_DEBUG
 }

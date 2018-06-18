@@ -1,24 +1,16 @@
-package main
+package crawler
 
 import (
-	"fmt"
 	"net/http"
-	"golang.org/x/net/html"
 	"crypto/tls"
+	"golang.org/x/net/html"
+	"fmt"
 	"regexp"
 	"strings"
+	"net/url"
 )
 
-type HttpError struct {
-	url string
-	code int
-}
-
-func (e *HttpError) Error() string {
-	return fmt.Sprintf("Http error: [code=%d] %s", e.code, e.url)
-}
-
-func Extract(url string) ([]string, error) {
+func extract(url string) ([]string, error) {
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	resp, err := http.Get(url)
 
@@ -69,7 +61,7 @@ func forEachNode(n *html.Node, pre, post func(n *html.Node)) {
 	}
 }
 
-func filterDomain(list []string) []string {
+func filterDomain(page *url.URL, list []string) []string {
 	var re = regexp.MustCompile(`(?m)^(http(|s):|)(\/\/)` + page.Hostname() + `.*`)
 	var splitedUrl []string
 	var urls []string
@@ -85,3 +77,4 @@ func filterDomain(list []string) []string {
 
 	return urls
 }
+
