@@ -2,14 +2,14 @@ package crawler
 
 import (
 	"net/url"
-		)
+	)
 
 const (
-	CONNECTIONS_LIMIT = 20
+	CONNECTIONS_LIMIT = 100
 	CLOSE_LOGGER_MESSAGE = "crawler_logger_exit;"
 )
 
-var n uint32
+var n uint32 = 1
 
 type crawlUrl struct{
 	Parent string
@@ -17,22 +17,22 @@ type crawlUrl struct{
 }
 
 type crawler struct{
-	tokens     chan struct{}
-	httpErrors chan *HttpError
-	workList   chan []crawlUrl
-	page       *url.URL
-	logChannel chan string
+	tokens        chan struct{}
+	httpErrors    chan *HttpError
+	workList      chan []crawlUrl
+	page          *url.URL
+	logChannel    chan string
 }
 
 func Run(pageUrl string, logChannel *chan string) *crawler {
 	var page, _ = url.Parse(pageUrl)
 
 	c := crawler{
-		tokens:     make(chan struct{}, CONNECTIONS_LIMIT),
-		httpErrors: make(chan *HttpError),
-		workList:   make(chan []crawlUrl),
-		page:       page,
-		logChannel: *logChannel,
+		tokens:        make(chan struct{}, CONNECTIONS_LIMIT),
+		httpErrors:    make(chan *HttpError),
+		workList:      make(chan []crawlUrl),
+		page:          page,
+		logChannel:    *logChannel,
 	}
 
 	go func() {
@@ -42,7 +42,6 @@ func Run(pageUrl string, logChannel *chan string) *crawler {
 		}}
 	}()
 
-	n++
 	c.bind()
 
 	return &c
@@ -61,20 +60,24 @@ func (c *crawler) bind() {
 
 						go func(link crawlUrl) {
 							c.workList <- c.crawl(link)
-							//c.logChannel <- "Seen: " +  link
+							c.logChannel <- "Seen: " + link.Url
 						}(link)
 					}
 				}
-			} else {
-				break
+
+				continue
 			}
+			break
+
 		case err := <-c.httpErrors:
 			n++
 			go func(err *HttpError) {
-				c.logChannel <- "Fuck! " + err.Error()
+				c.logChannel <- err.Error()
 			} (err)
 		}
 	}
+
+	c.logChannel <- "Not found any more pages to see"
 
 	defer func(c *crawler) {
 		close(c.workList)

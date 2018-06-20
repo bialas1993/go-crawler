@@ -3,8 +3,7 @@ package main
 import (
 	log "github.com/sirupsen/logrus"
 	"github.com/bialas1993/go-crawler/crawler"
-	"github.com/bialas1993/go-crawler/filters"
-)
+	)
 
 func main() {
 	pageUrl, depth, logTimer, logLevel := parseParams()
@@ -17,27 +16,14 @@ func main() {
 	} ()
 
 	for {
-		select {
-		case logMsg := <-logChan:
-			if logMsg != crawler.CLOSE_LOGGER_MESSAGE {
-				log.Println(logMsg)
-				continue
-			}
-
-			return
+		logMsg := <-logChan
+		if logMsg != crawler.CLOSE_LOGGER_MESSAGE {
+			log.Println(logMsg)
+			continue
 		}
+
+		break
 	}
 
-	close(logChan)
-}
-
-
-func createSeoFilters() FilterManager {
-	fm := FilterManager{}
-
-	fm.
-		Add(filters.HTag{}).
-		Add(filters.ImgTag{})
-
-	return fm
+	defer close(logChan)
 }
