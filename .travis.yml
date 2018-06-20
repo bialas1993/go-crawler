@@ -17,12 +17,19 @@ script:
 before_deploy:
    - git config --local user.name "bialas1993"
    - git config --local user.email "white@white.com"
+   - export TAG_NAME=$(git rev-list --all --count)
 
 deploy:
   - provider: releases
     api_key: "$GITHUB_TOKEN"
     file: "go-crawler-linux"
     skip_cleanup: true
+    overwrite: true
+    tag_name: "$TAG_NAME"
+    target_commitish: "$TRAVIS_COMMIT"
+    on:
+        tags: true
+        repo: "$TRAVIS_REPO_SLUG"
   - provider: script
     skip_cleanup: true
     script: make ci
