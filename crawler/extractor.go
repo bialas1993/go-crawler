@@ -1,26 +1,18 @@
-package main
+package crawler
 
 import (
-	"fmt"
 	"net/http"
-	"golang.org/x/net/html"
 	"crypto/tls"
+	"golang.org/x/net/html"
+	"fmt"
 	"regexp"
 	"strings"
+	"net/url"
 )
 
-type HttpError struct {
-	url string
-	code int
-}
-
-func (e *HttpError) Error() string {
-	return fmt.Sprintf("Http error: [code=%d] %s", e.code, e.url)
-}
-
-func Extract(url string) ([]string, error) {
+func extract(url crawlUrl) ([]crawlUrl, error) {
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	resp, err := http.Get(url)
+	resp, err := http.Get(url.Url)
 
 	if err != nil {
 		return nil, err
@@ -28,7 +20,7 @@ func Extract(url string) ([]string, error) {
 
 	if resp.StatusCode != http.StatusOK {
 		resp.Body.Close()
-		return nil, &HttpError{url, resp.StatusCode}
+		return nil, &HttpError{url.Parent, url.Url, resp.StatusCode}
 	}
 
 	doc, err := html.Parse(resp.Body)
@@ -36,7 +28,7 @@ func Extract(url string) ([]string, error) {
 		return nil, fmt.Errorf("parsing %s to HTML: %v", url, err)
 	}
 
-	var links []string
+	var links []crawlUrl
 	visitNode := func(n *html.Node) {
 		if n.Type == html.ElementNode && n.Data == "a" {
 			for _, a := range n.Attr {
@@ -47,7 +39,10 @@ func Extract(url string) ([]string, error) {
 				if err != nil {
 					continue
 				}
-				links = append(links, link.String())
+				links = append(links, crawlUrl{
+					Parent: url.Url,
+					Url: link.String(),
+				})
 			}
 		}
 	}
@@ -69,19 +64,20 @@ func forEachNode(n *html.Node, pre, post func(n *html.Node)) {
 	}
 }
 
-func filterDomain(list []string) []string {
+func filterDomain(page *url.URL, list []crawlUrl) []crawlUrl {
 	var re = regexp.MustCompile(`(?m)^(http(|s):|)(\/\/)` + page.Hostname() + `.*`)
 	var splitedUrl []string
-	var urls []string
+	var urls []crawlUrl
 
 	for _, url := range list {
-		splitedUrl = strings.Split(url, "#")
-		url = splitedUrl[0]
+		splitedUrl = strings.Split(url.Url, "#")
+		url.Url = splitedUrl[0]
 
-		if len(re.FindAllString(url, -1)) > 0 {
+		if len(re.FindAllString(url.Url, -1)) > 0 {
 			urls = append(urls, url)
 		}
 	}
 
 	return urls
 }
+

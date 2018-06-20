@@ -17,3 +17,4 @@
 /go-crawler-*
 /vendor
 /go-crawler
+/crawler.log
