@@ -2,10 +2,12 @@ package crawler
 
 import (
 	"net/url"
-	)
+	"golang.org/x/net/html"
+	"context"
+)
 
 const (
-	CONNECTIONS_LIMIT = 100
+	CONNECTIONS_LIMIT = 200
 	CLOSE_LOGGER_MESSAGE = "crawler_logger_exit;"
 )
 
@@ -17,22 +19,28 @@ type crawlUrl struct{
 }
 
 type crawler struct{
-	tokens        chan struct{}
-	httpErrors    chan *HttpError
-	workList      chan []crawlUrl
-	page          *url.URL
-	logChannel    chan string
+	tokens      chan struct{}
+	httpErrors  chan *HttpError
+	workList    chan []crawlUrl
+	page        *url.URL
+	logChannel  chan string
+	nodeChannel chan *html.Node
+	ctx         context.Context
+	cancel      context.CancelFunc
 }
 
-func Run(pageUrl string, logChannel *chan string) *crawler {
+func Run(pageUrl string, nodeChannel *chan *html.Node, logChannel *chan string, ctx context.Context, cancel context.CancelFunc) *crawler {
 	var page, _ = url.Parse(pageUrl)
 
 	c := crawler{
-		tokens:        make(chan struct{}, CONNECTIONS_LIMIT),
-		httpErrors:    make(chan *HttpError),
-		workList:      make(chan []crawlUrl),
-		page:          page,
-		logChannel:    *logChannel,
+		tokens:      make(chan struct{}, CONNECTIONS_LIMIT),
+		httpErrors:  make(chan *HttpError),
+		workList:    make(chan []crawlUrl),
+		page:        page,
+		logChannel:  *logChannel,
+		nodeChannel: *nodeChannel,
+		ctx:         ctx,
+		cancel:      cancel,
 	}
 
 	go func() {
@@ -64,7 +72,6 @@ func (c *crawler) bind() {
 						}(link)
 					}
 				}
-
 				continue
 			}
 			break
@@ -78,18 +85,23 @@ func (c *crawler) bind() {
 	}
 
 	c.logChannel <- "Not found any more pages to see"
+	c.cancel()
+
+	go func() {
+		c.logChannel <- CLOSE_LOGGER_MESSAGE
+		c.nodeChannel <- nil
+	}()
 
 	defer func(c *crawler) {
 		close(c.workList)
 		close(c.tokens)
 		close(c.httpErrors)
-		c.logChannel <- CLOSE_LOGGER_MESSAGE
 	}(c)
 }
 
 func (c *crawler) crawl(url crawlUrl) []crawlUrl {
 	c.tokens <- struct{}{}
-	list, err := extract(url)
+	list, err := extract(c.nodeChannel, url)
 	<-c.tokens
 
 	if err != nil {
