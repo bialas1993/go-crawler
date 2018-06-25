@@ -8,7 +8,6 @@ import (
 
 const (
 	CONNECTIONS_LIMIT = 200
-	CLOSE_LOGGER_MESSAGE = "crawler_logger_exit;"
 )
 
 var n uint32 = 1
@@ -23,13 +22,13 @@ type crawler struct{
 	httpErrors  chan *HttpError
 	workList    chan []crawlUrl
 	page        *url.URL
-	logChannel  chan string
+	logChannel  chan LogMessage
 	nodeChannel chan *html.Node
 	ctx         context.Context
 	cancel      context.CancelFunc
 }
 
-func Run(pageUrl string, nodeChannel *chan *html.Node, logChannel *chan string, ctx context.Context, cancel context.CancelFunc) *crawler {
+func Run(pageUrl string, nodeChannel *chan *html.Node, logChannel *chan LogMessage, ctx context.Context, cancel context.CancelFunc) *crawler {
 	var page, _ = url.Parse(pageUrl)
 
 	c := crawler{
@@ -68,7 +67,7 @@ func (c *crawler) bind() {
 
 						go func(link crawlUrl) {
 							c.workList <- c.crawl(link)
-							c.logChannel <- "Seen: " + link.Url
+							c.logChannel <- Debug("Seen: " + link.Url)
 						}(link)
 					}
 				}
@@ -79,16 +78,16 @@ func (c *crawler) bind() {
 		case err := <-c.httpErrors:
 			n++
 			go func(err *HttpError) {
-				c.logChannel <- err.Error()
+				c.logChannel <- Error(err.Error())
 			} (err)
 		}
 	}
 
-	c.logChannel <- "Not found any more pages to see"
+	c.logChannel <- Info("Not found any more pages to see")
 	c.cancel()
 
 	go func() {
-		c.logChannel <- CLOSE_LOGGER_MESSAGE
+		c.logChannel <- CloseLogger()
 		c.nodeChannel <- nil
 	}()
 

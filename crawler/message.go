@@ -1,0 +1,95 @@
+package crawler
+
+const (
+	LOG_MESSAGE_CLOSE = iota
+	LOG_MESSAGE_FATAL
+	LOG_MESSAGE_ERROR
+	LOG_MESSAGE_WARN
+	LOG_MESSAGE_INFO
+	LOG_MESSAGE_DEBUG
+)
+
+type LogMessage interface {
+	Level() int
+	GetMessage() string
+}
+
+type CrawlerMessage struct {
+	Message string
+}
+
+type InfoMessage struct {
+	CrawlerMessage
+}
+
+type WarnMessage struct {
+	CrawlerMessage
+}
+
+type ErrorMessage struct {
+	CrawlerMessage
+}
+
+type DebugMessage struct {
+	CrawlerMessage
+}
+
+type CloseMessage struct {
+	CrawlerMessage
+}
+
+func (m CrawlerMessage) Level() int {
+	return LOG_MESSAGE_CLOSE
+}
+
+func (m CrawlerMessage) GetMessage() string {
+	return m.Message
+}
+
+func (m InfoMessage) Level() int {
+	return LOG_MESSAGE_INFO
+}
+
+func (m WarnMessage) Level() int {
+	return LOG_MESSAGE_WARN
+}
+
+func (m ErrorMessage) Level() int {
+	return LOG_MESSAGE_ERROR
+}
+
+func (m DebugMessage) Level() int {
+	return LOG_MESSAGE_DEBUG
+}
+
+func Info(msg string) LogMessage{
+	m := InfoMessage{}
+	m.Message = msg
+
+	return m
+}
+
+func Warn(msg string) LogMessage {
+	m := InfoMessage{}
+	m.Message = msg
+
+	return m
+}
+
+func Error(msg string) LogMessage {
+	m := ErrorMessage{}
+	m.Message = msg
+
+	return m
+}
+
+func Debug(msg string) LogMessage {
+	m := DebugMessage{}
+	m.Message = msg
+
+	return m
+}
+
+func CloseLogger() LogMessage {
+	return CrawlerMessage{}
+}
