@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"flag"
+	"github.com/bialas1993/go-crawler/crawler"
 )
 
 const (
@@ -20,13 +21,14 @@ func usage() {
 }
 
 func parseParams() (string, int, int, int) {
-	var depth, logTimer int
+	var depth, logTimer, logLevel int
 	var page string
 
 	flag.Usage = usage
 	flag.StringVar(&page, "page", "", "Url to parse pageUrl")
 	flag.IntVar(&depth, "depth", 0, "Depth to finding pages")
 	flag.IntVar(&logTimer, "timer", 1, "Timer to log performance")
+	flag.IntVar(&logLevel, "level", crawler.LOG_MESSAGE_ERROR, "Logging level")
 
 	flag.Parse()
 
@@ -38,5 +40,5 @@ func parseParams() (string, int, int, int) {
 
 	depth += 1
 
-	return page, depth, logTimer, LOG_LEVEL_DEBUG
+	return page, depth, logTimer, logLevel
 }
