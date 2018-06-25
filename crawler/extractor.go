@@ -10,7 +10,7 @@ import (
 	"net/url"
 )
 
-func extract(url crawlUrl) ([]crawlUrl, error) {
+func extract(nodeChannel chan *html.Node, url crawlUrl) ([]crawlUrl, error) {
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	resp, err := http.Get(url.Url)
 
@@ -24,6 +24,10 @@ func extract(url crawlUrl) ([]crawlUrl, error) {
 	}
 
 	doc, err := html.Parse(resp.Body)
+	go func() {
+		nodeChannel <- doc
+	}()
+
 	if err != nil {
 		return nil, fmt.Errorf("parsing %s to HTML: %v", url, err)
 	}
@@ -65,7 +69,7 @@ func forEachNode(n *html.Node, pre, post func(n *html.Node)) {
 }
 
 func filterDomain(page *url.URL, list []crawlUrl) []crawlUrl {
-	var re = regexp.MustCompile(`(?m)^(http(|s):|)(\/\/)` + page.Hostname() + `.*`)
+	var re = regexp.MustCompile(`(?m)^(http(|s):|)(\/\/)((.*@)|)` + page.Hostname() + `.*`)
 	var splitedUrl []string
 	var urls []crawlUrl
 

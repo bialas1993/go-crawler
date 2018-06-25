@@ -31,7 +31,7 @@ func (fm *FilterManager) Configure() {
 func (fm *FilterManager) Parse(node *html.Node) {
 	if node != nil {
 		for _, filter := range fm.filters {
-			filter.Parse(node)
+			filter.Parse(filter, node)
 		}
 	}
 }

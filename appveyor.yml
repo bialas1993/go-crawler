@@ -2,7 +2,7 @@ branches:
   only:
     - master
 
-clone_folder: c:\gopath\src\github.com\bialas1993\elasticsearch-tutorial
+clone_folder: c:\gopath\src\github.com\bialas1993\go-crawler
 
 environment:
   GOPATH: c:\gopath
