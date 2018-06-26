@@ -9,6 +9,17 @@ const (
 	LOG_MESSAGE_DEBUG
 )
 
+type LogService interface {
+	Panic(message string, data interface{})
+	Fatal(message string, data interface{})
+	Error(message string, data interface{})
+	Warning(message string, data interface{})
+	Info(message string, data interface{})
+	Debug(message string, data interface{})
+	Log(message LogMessage)
+	Close()
+}
+
 type LogMessage interface {
 	Level() int
 	GetMessage() string
