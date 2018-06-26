@@ -28,7 +28,7 @@ func parseParams() (string, int, int, int) {
 	flag.StringVar(&page, "page", "", "Url to parse pageUrl")
 	flag.IntVar(&depth, "depth", 0, "Depth to finding pages")
 	flag.IntVar(&logTimer, "timer", 1, "Timer to log performance")
-	flag.IntVar(&logLevel, "level", crawler.LOG_MESSAGE_ERROR, "Logging level")
+	flag.IntVar(&logLevel, "level", crawler.LOG_MESSAGE_INFO, "Logging level")
 
 	flag.Parse()
 

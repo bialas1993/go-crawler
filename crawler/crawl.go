@@ -22,13 +22,13 @@ type crawler struct{
 	httpErrors  chan *HttpError
 	workList    chan []crawlUrl
 	page        *url.URL
-	logChannel  chan LogMessage
 	nodeChannel chan *html.Node
 	ctx         context.Context
 	cancel      context.CancelFunc
+	logger 		LogService
 }
 
-func Run(pageUrl string, nodeChannel *chan *html.Node, logChannel *chan LogMessage, ctx context.Context, cancel context.CancelFunc) *crawler {
+func Run(pageUrl string, nodeChannel *chan *html.Node, ctx context.Context, cancel context.CancelFunc, logger LogService) {
 	var page, _ = url.Parse(pageUrl)
 
 	c := crawler{
@@ -36,10 +36,10 @@ func Run(pageUrl string, nodeChannel *chan *html.Node, logChannel *chan LogMessa
 		httpErrors:  make(chan *HttpError),
 		workList:    make(chan []crawlUrl),
 		page:        page,
-		logChannel:  *logChannel,
 		nodeChannel: *nodeChannel,
 		ctx:         ctx,
 		cancel:      cancel,
+		logger:		 logger,
 	}
 
 	go func() {
@@ -50,8 +50,6 @@ func Run(pageUrl string, nodeChannel *chan *html.Node, logChannel *chan LogMessa
 	}()
 
 	c.bind()
-
-	return &c
 }
 
 func (c *crawler) bind() {
@@ -67,7 +65,7 @@ func (c *crawler) bind() {
 
 						go func(link crawlUrl) {
 							c.workList <- c.crawl(link)
-							c.logChannel <- Debug("Seen: " + link.Url)
+							c.logger.Log(Debug("Seen: " + link.Url))
 						}(link)
 					}
 				}
@@ -78,16 +76,15 @@ func (c *crawler) bind() {
 		case err := <-c.httpErrors:
 			n++
 			go func(err *HttpError) {
-				c.logChannel <- Error(err.Error())
+				c.logger.Log(Error(err.Error()))
 			} (err)
 		}
 	}
 
-	c.logChannel <- Info("Not found any more pages to see")
+	c.logger.Log(Info("Not found any more pages to see"))
 	c.cancel()
 
 	go func() {
-		c.logChannel <- CloseLogger()
 		c.nodeChannel <- nil
 	}()
 
@@ -95,6 +92,7 @@ func (c *crawler) bind() {
 		close(c.workList)
 		close(c.tokens)
 		close(c.httpErrors)
+		c.logger.Close()
 	}(c)
 }
 
