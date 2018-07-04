@@ -4,20 +4,32 @@ import (
 	"net/url"
 	"golang.org/x/net/html"
 	"context"
+	"net/http"
+	"encoding/base64"
 )
 
 const (
 	CONNECTIONS_LIMIT = 200
+	AUTH_DISABLE      = 0
+	AUTH_ENABLE       = 1
 )
 
-var n uint32 = 1
-
-type crawlUrl struct{
-	Parent string
-	Url string
+type AuthCredentials struct {
+	Enabled  bool
+	Username string
+	Password string
 }
 
-type crawler struct{
+func (a AuthCredentials) Hash() string {
+	return base64.StdEncoding.EncodeToString([]byte(a.Username + ":" + a.Password))
+}
+
+type crawlUrl struct {
+	Parent string
+	Url    string
+}
+
+type crawler struct {
 	tokens      chan struct{}
 	httpErrors  chan *HttpError
 	workList    chan []crawlUrl
@@ -25,10 +37,13 @@ type crawler struct{
 	nodeChannel chan *html.Node
 	ctx         context.Context
 	cancel      context.CancelFunc
-	logger 		LogService
+	logger      LogService
+	auth        AuthCredentials
 }
 
-func Run(pageUrl string, nodeChannel *chan *html.Node, ctx context.Context, cancel context.CancelFunc, logger LogService) {
+var n uint32 = 1
+
+func Run(pageUrl string, nodeChannel *chan *html.Node, ctx context.Context, cancel context.CancelFunc, logger LogService, auth AuthCredentials) {
 	var page, _ = url.Parse(pageUrl)
 
 	c := crawler{
@@ -39,7 +54,8 @@ func Run(pageUrl string, nodeChannel *chan *html.Node, ctx context.Context, canc
 		nodeChannel: *nodeChannel,
 		ctx:         ctx,
 		cancel:      cancel,
-		logger:		 logger,
+		logger:      logger,
+		auth:        auth,
 	}
 
 	go func() {
@@ -65,7 +81,7 @@ func (c *crawler) bind() {
 
 						go func(link crawlUrl) {
 							c.workList <- c.crawl(link)
-							c.logger.Log(Debug("Seen: " + link.Url))
+							c.logger.Log(Debug("Seen: "+link.Url, ExtraDataMessage{Url: link.Url, ResponseCode: http.StatusOK}))
 						}(link)
 					}
 				}
@@ -76,8 +92,8 @@ func (c *crawler) bind() {
 		case err := <-c.httpErrors:
 			n++
 			go func(err *HttpError) {
-				c.logger.Log(Error(err.Error()))
-			} (err)
+				c.logger.Log(Error(err.Error(), ExtraDataMessage{Url: err.url, ResponseCode: err.code}))
+			}(err)
 		}
 	}
 
@@ -98,12 +114,13 @@ func (c *crawler) bind() {
 
 func (c *crawler) crawl(url crawlUrl) []crawlUrl {
 	c.tokens <- struct{}{}
-	list, err := extract(c.nodeChannel, url)
+	list, err := extract(c.nodeChannel, url, c.auth)
 	<-c.tokens
 
 	if err != nil {
-		err, ok := err.(*HttpError); if ok {
-			go func (err *HttpError) {
+		err, ok := err.(*HttpError)
+		if ok {
+			go func(err *HttpError) {
 				c.httpErrors <- err
 			}(err)
 		}

@@ -18,3 +18,4 @@
 /vendor
 /go-crawler
 /crawler.log
+/.env

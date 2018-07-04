@@ -1,34 +1,33 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"flag"
+	"strings"
 	"github.com/bialas1993/go-crawler/crawler"
-)
-
-const (
-	LOG_LEVEL_INFO = iota
-	LOG_LEVEL_WARNING
-	LOG_LEVEL_ERROR
-	LOG_LEVEL_DEBUG
+	"github.com/howeyc/gopass"
 )
 
 func usage() {
-	fmt.Printf("usage: go-crawler --pageUrl=http://your-domain.com/ --depth=5 --timer=1\n")
+	fmt.Printf("usage: go-crawler -pageUrl=http://your-domain.com/ -timer=1 -auth=1\n")
 	flag.PrintDefaults()
 	os.Exit(0)
 }
 
-func parseParams() (string, int, int, int) {
-	var depth, logTimer, logLevel int
+func parseParams() (string, int, int, crawler.AuthCredentials) {
+	var logTimer, logLevel, authEnabled int
 	var page string
+	auth := crawler.AuthCredentials {
+		Enabled: false,
+	}
 
 	flag.Usage = usage
 	flag.StringVar(&page, "page", "", "Url to parse pageUrl")
-	flag.IntVar(&depth, "depth", 0, "Depth to finding pages")
 	flag.IntVar(&logTimer, "timer", 1, "Timer to log performance")
 	flag.IntVar(&logLevel, "level", crawler.LOG_MESSAGE_INFO, "Logging level")
+	flag.IntVar(&authEnabled, "auth", crawler.AUTH_DISABLE, "Auth enabled")
 
 	flag.Parse()
 
@@ -38,7 +37,26 @@ func parseParams() (string, int, int, int) {
 		os.Exit(1)
 	}
 
-	depth += 1
+	if authEnabled == crawler.AUTH_ENABLE {
+		auth = credentials()
+	}
 
-	return page, depth, logTimer, logLevel
+	return page, logTimer, logLevel, auth
+}
+
+func credentials() crawler.AuthCredentials {
+	reader := bufio.NewReader(os.Stdin)
+
+	fmt.Print("Enter Username: ")
+	username, _ := reader.ReadString('\n')
+
+	fmt.Print("Enter Password: ")
+	bytePassword, _ := gopass.GetPasswd()
+	password := string(bytePassword)
+
+	return crawler.AuthCredentials{
+		Enabled: true,
+		Username: strings.TrimSpace(username),
+		Password: strings.TrimSpace(password),
+	}
 }
