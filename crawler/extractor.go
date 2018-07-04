@@ -10,9 +10,16 @@ import (
 	"net/url"
 )
 
-func extract(nodeChannel chan *html.Node, url crawlUrl) ([]crawlUrl, error) {
+func extract(nodeChannel chan *html.Node, url crawlUrl, auth AuthCredentials) ([]crawlUrl, error) {
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	resp, err := http.Get(url.Url)
+	client := &http.Client{}
+	req, _ := http.NewRequest(http.MethodGet, url.Url, nil)
+
+	if auth.Enabled {
+		req.Header.Set("Authorization", "Basic " + auth.Hash())
+	}
+
+	resp, err := client.Do(req)
 
 	if err != nil {
 		return nil, err

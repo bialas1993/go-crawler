@@ -11,7 +11,7 @@ type FilterManager struct {
 	parseGroup sync.WaitGroup
 }
 
-func NewManager() *FilterManager {
+func CreateManager() *FilterManager {
 	fm := FilterManager{}
 	fm.Configure()
 
